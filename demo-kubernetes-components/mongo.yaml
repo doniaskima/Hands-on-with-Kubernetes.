@@ -1,0 +1,65 @@
+# Defines the API version used for this resource (apps/v1 for deployments)
+apiVersion: apps/v1 
+# Specifies the kind of Kubernetes object (a Deployment)
+kind: Deployment 
+metadata:
+  # Name of the deployment
+  name: mongodb-deployment
+  labels:
+    # Label used to identify and group resources (app: mongodb)
+    app: mongodb
+spec:
+  # Defines how many replicas (instances) of the MongoDB pod should be running
+  replicas: 1
+  selector:
+    matchLabels:
+      # Specifies the label the deployment will match to select the pod
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        # Label to match with the selector, to group the pod under this deployment
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        # MongoDB Docker image
+        image: mongo
+        # Expose MongoDB port inside the container
+        ports:
+        - containerPort: 27017
+        # Environment variables for initializing the MongoDB root username
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              # Refers to the secret that holds the root username
+              name: mongodb-secret
+              key: mongo-root-username
+        # Environment variables for initializing the MongoDB root password
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom: 
+            secretKeyRef:
+              # Refers to the secret that holds the root password
+              name: mongodb-secret
+              key: mongo-root-password
+
+---
+# Defines the API version for the service object (v1)
+apiVersion: v1
+# Kubernetes service to expose MongoDB deployment
+kind: Service
+metadata:
+  # Name of the service
+  name: mongodb-service
+spec:
+  selector:
+    # The service will look for pods with the label app: mongodb
+    app: mongodb
+  ports:
+    # Defines the communication protocol (TCP)
+    - protocol: TCP
+      # Exposes the service on port 27017 inside the cluster
+      port: 27017
+      # Target port inside the pod (MongoDB listens on this port)
+      targetPort: 27017
